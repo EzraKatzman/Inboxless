@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	myredis "github.com/EzraKatzman/Inboxless/backend/internal/redis"
+	"github.com/EzraKatzman/Inboxless/backend/internal/redis"
 	"github.com/gorilla/websocket"
 )
 
@@ -34,7 +34,7 @@ func InboxWebSocketHandler(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	channel := fmt.Sprintf("inbox:%s", inboxID)
-	pubsub := myredis.Rdb.Subscribe(ctx, channel)
+	pubsub := redis.Rdb.Subscribe(ctx, channel)
 	defer pubsub.Close()
 
 	for {
@@ -48,6 +48,11 @@ func InboxWebSocketHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println("WebSocket write error:", err)
 			break
+		}
+
+		err = redis.Rdb.Expire(ctx, channel, InboxTTL).Err()
+		if err != nil {
+			fmt.Println("Failed to refresh inbox TTL on websocket:", err)
 		}
 	}
 }

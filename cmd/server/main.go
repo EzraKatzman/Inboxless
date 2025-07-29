@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/EzraKatzman/Inboxless/backend/internal/handlers"
 	"github.com/EzraKatzman/Inboxless/backend/internal/redis"
@@ -45,29 +47,51 @@ func main() {
 			return
 		}
 
+		_, err := handlers.GetInboxTTL(inboxID)
+		if err != nil {
+			http.Error(w, "Inbox expired or not found", http.StatusNotFound)
+			return
+		}
+
 		channel := fmt.Sprintf("inbox:%s", inboxID)
 
-		err := redis.Rdb.Publish(redis.Ctx, channel, message).Err()
+		timestampedMessage := handlers.TimedMessage{
+			Message:   message,
+			CreatedAt: time.Now().Unix(),
+		}
+
+		jsonMessage, err := json.Marshal(timestampedMessage)
+		if err != nil {
+			http.Error(w, "Failed to encode message", http.StatusInternalServerError)
+			return
+		}
+
+		err = redis.Rdb.Publish(redis.Ctx, channel, jsonMessage).Err()
 		if err != nil {
 			http.Error(w, "Failed to publish message", http.StatusInternalServerError)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Message published"))
-
 		messagesKey := fmt.Sprintf("inbox:%s:messages", inboxID)
 
-		err = redis.Rdb.RPush(redis.Ctx, messagesKey, message).Err()
+		err = redis.Rdb.RPush(redis.Ctx, messagesKey, jsonMessage).Err()
 		if err != nil {
 			http.Error(w, "Failed to save message", http.StatusInternalServerError)
 			return
+		}
+
+		err = redis.Rdb.Expire(redis.Ctx, channel, handlers.InboxTTL).Err()
+		if err != nil {
+			fmt.Println("Failed to refresh inbox TTL:", err)
 		}
 
 		err = redis.Rdb.Expire(redis.Ctx, messagesKey, handlers.InboxTTL).Err()
 		if err != nil {
 			fmt.Println("Failed to set TTL on messages key:", err)
 		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Message published"))
 	})
 
 	http.HandleFunc("/api/inbox/messages", func(w http.ResponseWriter, r *http.Request) {

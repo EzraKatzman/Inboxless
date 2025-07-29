@@ -21,6 +21,10 @@ type InboxResponse struct {
 type TTLResponse struct {
 	ExpiresIn int `json:"expires_in"` //seconds
 }
+type TimedMessage struct {
+	Message   string `json:"message"`
+	CreatedAt int64  `json:"createdAt"`
+}
 
 func CreateInboxHandler(w http.ResponseWriter, r *http.Request) {
 	inboxID := email.GenerateInboxId()
@@ -55,8 +59,18 @@ func GetMessagesHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to get messages", http.StatusInternalServerError)
 		return
 	}
+
+	var parsedMessages []TimedMessage
+	for _, message := range messages {
+		var msg TimedMessage
+		if err := json.Unmarshal([]byte(message), &msg); err != nil {
+			continue
+		}
+		parsedMessages = append(parsedMessages, msg)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(messages)
+	json.NewEncoder(w).Encode(parsedMessages)
 }
 
 func GetInboxTTLHandler(w http.ResponseWriter, r *http.Request) {
@@ -66,15 +80,9 @@ func GetInboxTTLHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	key := fmt.Sprintf("inbox:%s", inboxID)
-	ttl, err := redis.Rdb.TTL(redis.Ctx, key).Result()
+	ttl, err := GetInboxTTL(inboxID)
 	if err != nil {
-		http.Error(w, "Failed to get TTL", http.StatusInternalServerError)
-		return
-	}
-
-	if ttl <= 0 {
-		http.Error(w, "Inbox not found or expired", http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
@@ -84,4 +92,16 @@ func GetInboxTTLHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(resp)
+}
+
+func GetInboxTTL(inboxID string) (time.Duration, error) {
+	key := fmt.Sprintf("inbox:%s", inboxID)
+	ttl, err := redis.Rdb.TTL(redis.Ctx, key).Result()
+	if err != nil {
+		return 0, err
+	}
+	if ttl <= 0 {
+		return 0, fmt.Errorf("inbox expired or not found")
+	}
+	return ttl, nil
 }
