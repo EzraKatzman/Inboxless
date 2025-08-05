@@ -22,8 +22,10 @@ type TTLResponse struct {
 	ExpiresIn int `json:"expires_in"` //seconds
 }
 type TimedMessage struct {
-	Message   string `json:"message"`
-	CreatedAt int64  `json:"createdAt"`
+	Message   string `json:"body"`
+	CreatedAt int64  `json:"created_at"`
+	From      string `json:"from"`
+	Subject   string `json:"subject"`
 }
 
 func CreateInboxHandler(w http.ResponseWriter, r *http.Request) {

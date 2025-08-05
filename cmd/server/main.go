@@ -8,6 +8,7 @@ import (
 
 	"github.com/EzraKatzman/Inboxless/backend/internal/handlers"
 	"github.com/EzraKatzman/Inboxless/backend/internal/redis"
+	"github.com/EzraKatzman/Inboxless/backend/internal/smtp"
 )
 
 func main() {
@@ -18,6 +19,8 @@ func main() {
 	} else {
 		fmt.Println("Redis connected:", pong)
 	}
+
+	go smtp.StartSMTPServer()
 
 	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "pong")
@@ -32,6 +35,22 @@ func main() {
 	})
 
 	http.HandleFunc("/api/inbox/ws", handlers.InboxWebSocketHandler)
+
+	http.HandleFunc("/api/inbox/messages", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handlers.GetMessagesHandler(w, r)
+		} else {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	http.HandleFunc("/api/inbox/ttl", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			handlers.GetInboxTTLHandler(w, r)
+		} else {
+			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
 	http.HandleFunc("/api/inbox/publish", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -92,22 +111,6 @@ func main() {
 
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Message published"))
-	})
-
-	http.HandleFunc("/api/inbox/messages", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			handlers.GetMessagesHandler(w, r)
-		} else {
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}
-	})
-
-	http.HandleFunc("/api/inbox/ttl", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			handlers.GetInboxTTLHandler(w, r)
-		} else {
-			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
-		}
 	})
 
 	fmt.Println("Server running at http://localhost:8080")
