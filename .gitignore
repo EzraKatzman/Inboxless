@@ -1,0 +1,17 @@
+# Go binaries
+bin/
+*.exe
+*.out
+*.test
+
+# IDEs/editors
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+
+# Dependencies
+vendor/
+.env
