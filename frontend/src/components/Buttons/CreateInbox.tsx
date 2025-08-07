@@ -1,5 +1,5 @@
 import { useState } from "react";
-import {RightArrowIcon} from "../../../public/icons/rightArrow";
+import {RightArrowIcon} from "../icons/rightArrow";
 import { createInbox } from "../../api/index";
 
 export default function CreateInbox() {
@@ -19,9 +19,9 @@ export default function CreateInbox() {
     };
 
     return (
-        <>
+        <div className="mt-8">
             <button 
-                className="inline-flex items-center justify-center text-center font-medium text-white bg-blue-700 hover:bg-blue-800 dark:bg-blue-600 dark:hover:bg-blue-700 px-6 py-3.5 rounded-lg"
+                className="inline-flex items-center justify-center text-center font-semibold text-neutral-100 bg-violet-700 hover:bg-violet-800 dark:bg-violet-600 dark:hover:bg-violet-700 px-6 py-3.5 rounded-lg"
                 onClick={handleCreateInbox}
                 disabled={loading}
                 aria-label="Create Inbox"
@@ -30,10 +30,10 @@ export default function CreateInbox() {
                 <RightArrowIcon className="ml-2 -mr-1"/>
             </button>
             {result && (
-                <div className="mt-4 text-sm text-gray-700 dark:text-gray-300">
+                <div className="mt-4 text-sm text-neutral-700 dark:text-neutral-300">
                     {result}
                 </div>
             )}
-        </>
+        </div>
     );
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
     LightIcon,
     DarkIcon,
-} from '../../../public/icons/themeIcons';
+} from '../icons/themeIcons';
 
 export default function ThemeToggle() {
     const getSystemTheme = () => {
@@ -33,10 +33,10 @@ export default function ThemeToggle() {
     return (
         <button
             onClick={toggleTheme}
-            className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-900"
+            className="p-2 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-900 hover:text-violet-700 cursor-pointer"
             aria-label="Toggle theme"
         >
-            {theme === "dark" ? <LightIcon className="w-6 h-6"/> : <DarkIcon className="w-6 h-6"/>}
+            {theme === "dark" ? <LightIcon className="w-5 h-5"/> : <DarkIcon className="w-5 h-5"/>}
         </button>
     )
 }
